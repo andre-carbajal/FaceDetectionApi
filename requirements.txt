@@ -1,6 +1,6 @@
 flask
-face_recognition
-face_recognition_models
 setuptools
 numpy
 opencv-python
+face_recognition
+face_recognition_models
