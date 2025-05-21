@@ -74,8 +74,6 @@ def add_person():
 
 @app.route('/recognize', methods=['POST'])
 def recognize_faces():
-    # Get image from request
-    global confidence
     if 'image' not in request.json:
         return jsonify({'error': 'No image provided'}), 400
 
@@ -91,28 +89,24 @@ def recognize_faces():
     face_locations = face_recognition.face_locations(rgb_image)
     face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
 
-    # Identify faces
-    results = []
-    for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-        # Compare with known faces
-        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-        name = "Unknown"
+    if len(face_encodings) == 0:
+        return jsonify({'error': 'No face detected'}), 400
+    if len(face_encodings) > 1:
+        return jsonify({'error': 'More than one face detected'}), 400
 
-        if True in matches:
-            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-            best_match_index = np.argmin(face_distances)
-            if matches[best_match_index]:
-                name = known_face_names[best_match_index]
-                confidence = 1 - face_distances[best_match_index]
-        else:
-            confidence = 0.0
+    face_encoding = face_encodings[0]
+    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+    name = "Unknown"
+    confidence = 0.0
 
-        results.append({
-            'name': name,
-            'confidence': float(confidence)
-        })
+    if True in matches:
+        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+        best_match_index = np.argmin(face_distances)
+        if matches[best_match_index]:
+            name = known_face_names[best_match_index]
+            confidence = 1 - face_distances[best_match_index]
 
-    return jsonify({'faces': results})
+    return jsonify({'name': name, 'confidence': float(confidence)})
 
 
 if __name__ == '__main__':
