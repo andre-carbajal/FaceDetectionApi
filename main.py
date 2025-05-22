@@ -57,13 +57,19 @@ def add_person():
     if len(face_encodings) > 1:
         return jsonify({'error': 'Se detectó más de un rostro en la imagen'}), 400
 
-    # Guardar la imagen en el directorio correspondiente
+    # Guardar solo la cara detectada en el directorio correspondiente
     person_dir = os.path.join('known_faces', name)
     if not os.path.exists(person_dir):
         os.makedirs(person_dir)
     image_count = len(os.listdir(person_dir))
+    # Detectar la ubicación de la cara
+    face_locations = face_recognition.face_locations(rgb_image)
+    if not face_locations:
+        return jsonify({'error': 'No se detectó ningún rostro en la imagen'}), 400
+    top, right, bottom, left = face_locations[0]
+    face_image = image[top:bottom, left:right]
     image_path = os.path.join(person_dir, f'{image_count + 1}.jpg')
-    cv2.imwrite(image_path, image)
+    cv2.imwrite(image_path, face_image)
 
     # Añadir a las listas en memoria
     known_face_encodings.append(face_encodings[0])
