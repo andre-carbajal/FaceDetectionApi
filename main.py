@@ -37,10 +37,10 @@ load_known_faces("known_faces")
 @app.route('/add_person', methods=['POST'])
 def add_person():
     data = request.json
-    if 'name' not in data or 'image' not in data:
+    if 'id_empleado' not in data or 'image' not in data:
         return jsonify({'error': 'Faltan parámetros'}), 400
 
-    name = data['name']
+    id_empleado = data['id_empleado']
     image_data = base64.b64decode(data['image'])
     nparr = np.frombuffer(image_data, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -58,7 +58,7 @@ def add_person():
         return jsonify({'error': 'Se detectó más de un rostro en la imagen'}), 400
 
     # Guardar solo la cara detectada en el directorio correspondiente
-    person_dir = os.path.join('known_faces', name)
+    person_dir = os.path.join('known_faces', id_empleado)
     if not os.path.exists(person_dir):
         os.makedirs(person_dir)
     image_count = len(os.listdir(person_dir))
@@ -73,46 +73,42 @@ def add_person():
 
     # Añadir a las listas en memoria
     known_face_encodings.append(face_encodings[0])
-    known_face_names.append(name)
+    known_face_names.append(id_empleado)
 
     return jsonify({'message': 'Persona añadida correctamente'})
 
 
 @app.route('/recognize', methods=['POST'])
 def recognize_faces():
-    if 'image' not in request.json:
-        return jsonify({'error': 'No image provided'}), 400
+    data = request.json
+    if 'image' not in data or 'id_empleado' not in data:
+        return jsonify({'error': 'Faltan parámetros'}), 400
 
-    # Decode base64 image
-    image_data = base64.b64decode(request.json['image'])
+    id_empleado = data['id_empleado']
+    image_data = base64.b64decode(data['image'])
     nparr = np.frombuffer(image_data, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    # Convert to RGB (face_recognition uses RGB)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Find faces
     face_locations = face_recognition.face_locations(rgb_image)
     face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
 
     if len(face_encodings) == 0:
-        return jsonify({'error': 'No face detected'}), 400
+        return jsonify({'result': False}), 200
     if len(face_encodings) > 1:
-        return jsonify({'error': 'More than one face detected'}), 400
+        return jsonify({'error': 'Se detectó más de un rostro en la imagen'}), 400
 
     face_encoding = face_encodings[0]
-    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-    name = "Unknown"
-    confidence = 0.0
+    # Buscar todos los índices donde el nombre coincide con el id_empleado
+    indices = [i for i, name in enumerate(known_face_names) if name == id_empleado]
+    if not indices:
+        return jsonify({'result': False}), 200
 
-    if True in matches:
-        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-        best_match_index = np.argmin(face_distances)
-        if matches[best_match_index]:
-            name = known_face_names[best_match_index]
-            confidence = 1 - face_distances[best_match_index]
-
-    return jsonify({'name': name, 'confidence': float(confidence)})
+    # Comparar solo contra los encodings de ese id_empleado
+    encodings_to_compare = [known_face_encodings[i] for i in indices]
+    matches = face_recognition.compare_faces(encodings_to_compare, face_encoding)
+    result = any(matches)
+    return jsonify({'result': result}), 200
 
 
 if __name__ == '__main__':
