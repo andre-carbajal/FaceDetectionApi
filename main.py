@@ -10,15 +10,15 @@ app = Flask(__name__)
 
 # Load known faces once when the server starts
 known_face_encodings = []
-known_face_names = []
+known_face_id_empleados = []
 
 
 def load_known_faces(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for person_name in os.listdir(directory):
-        person_dir = os.path.join(directory, person_name)
+    for id_empleado in os.listdir(directory):
+        person_dir = os.path.join(directory, id_empleado)
         if os.path.isdir(person_dir):
             for filename in os.listdir(person_dir):
                 if filename.endswith(('.jpg', '.jpeg', '.png')):
@@ -27,7 +27,7 @@ def load_known_faces(directory):
                     face_encodings = face_recognition.face_encodings(image)
                     if face_encodings:
                         known_face_encodings.append(face_encodings[0])
-                        known_face_names.append(person_name)
+                        known_face_id_empleados.append(id_empleado)
 
 
 # Load faces on startup
@@ -73,7 +73,7 @@ def add_person():
 
     # Añadir a las listas en memoria
     known_face_encodings.append(face_encodings[0])
-    known_face_names.append(id_empleado)
+    known_face_id_empleados.append(id_empleado)
 
     return jsonify({'message': 'Persona añadida correctamente'})
 
@@ -100,7 +100,7 @@ def recognize_faces():
 
     face_encoding = face_encodings[0]
     # Buscar todos los índices donde el nombre coincide con el id_empleado
-    indices = [i for i, name in enumerate(known_face_names) if name == id_empleado]
+    indices = [i for i, id_ in enumerate(known_face_id_empleados) if id_ == id_empleado]
     if not indices:
         return jsonify({'result': False}), 200
 
