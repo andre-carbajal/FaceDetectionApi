@@ -100,11 +100,16 @@ def add_face():
         if len(face_encodings) > 1:
             return jsonify({'error': 'Se detectó más de un rostro en la imagen'}), 400
 
+        top, right, bottom, left = face_locations[0]
+        face_image = image[top:bottom, left:right]
+        _, buffer = cv2.imencode('.jpg', face_image)
+        face_image_base64 = base64.b64encode(buffer).decode('utf-8')
+
         cursor = conn.cursor()
 
         cursor.execute(
             "INSERT INTO Cara (idEmpleado, caraBase64) VALUES (?, ?)",
-            (id_empleado, image_base64)
+            (id_empleado, face_image_base64)
         )
         conn.commit()
 
