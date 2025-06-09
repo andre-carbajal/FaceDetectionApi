@@ -74,5 +74,50 @@ def recognize_faces():
     return jsonify({'result': result}), 200
 
 
+@app.route('/add_face', methods=['POST'])
+def add_face():
+    data = request.json
+    if 'image' not in data or 'id_empleado' not in data:
+        return jsonify({'error': 'Faltan parámetros: image e id_empleado son requeridos'}), 400
+
+    id_empleado = data['id_empleado']
+    image_base64 = data['image']
+
+    try:
+        image_data = base64.b64decode(image_base64)
+        nparr = np.frombuffer(image_data, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if image is None:
+            return jsonify({'error': 'La imagen proporcionada no es válida'}), 400
+
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_image)
+        face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
+
+        if len(face_encodings) == 0:
+            return jsonify({'error': 'No se detectó ningún rostro en la imagen'}), 400
+        if len(face_encodings) > 1:
+            return jsonify({'error': 'Se detectó más de un rostro en la imagen'}), 400
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "INSERT INTO Cara (idEmpleado, caraBase64) VALUES (?, ?)",
+            (id_empleado, image_base64)
+        )
+        conn.commit()
+
+        return jsonify({
+            'message': 'Cara agregada exitosamente',
+            'id_empleado': id_empleado
+        }), 201
+
+    except pyodbc.Error as e:
+        return jsonify({'error': f'Error de base de datos: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
