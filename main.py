@@ -17,7 +17,7 @@ DATABASE = os.getenv('DATABASE')
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 
-connectionString = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={SERVER};DATABASE={DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=no;'
+connectionString = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SERVER};DATABASE={DATABASE};UID={DB_USER};PWD={DB_PASSWORD};TrustServerCertificate=no;'
 
 conn = pyodbc.connect(connectionString)
 
@@ -29,9 +29,14 @@ def recognize_faces():
         return jsonify({'error': 'Faltan parámetros'}), 400
 
     id_empleado = data['id_empleado']
-    image_data = base64.b64decode(data['image'])
+    try:
+        image_data = base64.b64decode(data['image'])
+    except Exception:
+        return jsonify({'error': 'La imagen no está en formato base64 válido'}), 400
     nparr = np.frombuffer(image_data, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if image is None:
+        return jsonify({'error': 'La imagen proporcionada no es válida'}), 400
 
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     face_locations = face_recognition.face_locations(rgb_image)

@@ -6,3 +6,4 @@ face_recognition
 face_recognition_models
 pyodbc
 python-dotenv
+gunicorn

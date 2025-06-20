@@ -1,0 +1,32 @@
+name: face-detection-api
+
+services:
+  python-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python-app
+    env_file:
+      - .env
+    restart: unless-stopped
+    init: true
+    ports:
+      - "5000:5000"
+    networks:
+      - api-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    depends_on:
+      - python-app
+    env_file:
+      - .env
+    command: tunnel run
+    restart: unless-stopped
+    networks:
+      - api-network
+
+networks:
+  api-network:
+    driver: bridge
