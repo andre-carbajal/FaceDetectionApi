@@ -1,5 +1,6 @@
 import base64
 import os
+import sys
 
 import cv2
 import face_recognition
@@ -21,6 +22,11 @@ connectionString = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SERVER};DA
 
 conn = pyodbc.connect(connectionString)
 
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print(f"Excepción no controlada: {e}")
+    sys.exit(1)
 
 @app.route('/recognize', methods=['POST'])
 def recognize_faces():
